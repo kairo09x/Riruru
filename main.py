@@ -7,13 +7,6 @@ app = Bot()
 player = CallManager(app)
 
 ensure_dirs()
+commands.setup(app, player)
 
-
-async def start_all():
-    await app.start()
-    await player.start()
-    await idle()
-
-
-if __name__ == "__main__":
-    app.run()
+app.run()
