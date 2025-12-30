@@ -18,10 +18,11 @@ bot = Client("MusicBot", api_id=int(os.getenv("API_ID")), api_hash=os.getenv("AP
 assistant = Client("Assistant", api_id=int(os.getenv("API_ID")), api_hash=os.getenv("API_HASH"), session_string=os.getenv("STRING_SESSION"))
 call_py = PyTgCalls(assistant)
 
-@call_py.on_stream_end()
-async def on_stream_end(client, update: Update):
+@call_py.on_update()
+async def on_update_handler(client, update: Update):
     if isinstance(update, StreamEnded):
         await play_next(update.chat_id, call_py)
+
 
 
 ytdl = YoutubeDL({"format": "bestaudio/best", "quiet": True, "cookiefile": "cookies.txt"})
