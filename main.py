@@ -10,16 +10,13 @@ from pytgcalls.types.stream import StreamEnded
 
 # Commands import karein
 from commands import (
-    play_logic,
-    stop_logic,
-    next_logic,
-    songs_logic,
-    pause_logic,
-    resume_logic,
-    playforce_logic,
-    play_next
+    play_logic, stop_logic, next_logic,
+    songs_logic, pause_logic, resume_logic,
+    playforce_logic, play_next  
 )
 
+
+from callbacks import pause_cb, resume_cb, skip_cb, stop_cb
 
 
 load_dotenv()
@@ -40,6 +37,24 @@ async def on_update_handler(client, update: Update):
 ytdl = YoutubeDL({"format": "bestaudio/best", "quiet": True, "cookiefile": "cookies.txt"})
 
 # --- Command Routing ---
+
+
+@bot.on_callback_query(filters.regex("^pause$"))
+async def pause_btn(client, query):
+    await pause_cb(client, query, call_py)
+
+@bot.on_callback_query(filters.regex("^resume$"))
+async def resume_btn(client, query):
+    await resume_cb(client, query, call_py)
+
+@bot.on_callback_query(filters.regex("^skip$"))
+async def skip_btn(client, query):
+    await skip_cb(client, query, call_py)
+
+@bot.on_callback_query(filters.regex("^stop$"))
+async def stop_btn(client, query):
+    await stop_cb(client, query, call_py)
+
 
 @bot.on_message(filters.command("play") & filters.group)
 async def play_cmd(client, message):
