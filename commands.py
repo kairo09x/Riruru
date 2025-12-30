@@ -2,7 +2,8 @@ from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from pytgcalls.types import MediaStream
 import asyncio
-from main import call_py
+from player import music_queues, play_next
+
 
 
 # Note: Hum yahan 'ytdl' aur 'call_py' ko main.py se import karenge ya functions me pass karenge.
