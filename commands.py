@@ -11,9 +11,18 @@ from player import music_queues, play_next
 
 music_queues = {}
 
+from pyrogram.enums import ChatMemberStatus
+
 async def is_admin(client, chat_id, user_id):
-    member = await client.get_chat_member(chat_id, user_id)
-    return member.status in ("administrator", "creator")
+    try:
+        member = await client.get_chat_member(chat_id, user_id)
+        return member.status in (
+            ChatMemberStatus.ADMINISTRATOR,
+            ChatMemberStatus.OWNER
+        )
+    except:
+        return False
+
 
 
 async def play_next(chat_id, call_py):
@@ -147,19 +156,21 @@ async def stop_logic(client, message, call_py):
     user_id = message.from_user.id
 
     if not await is_admin(client, chat_id, user_id):
-        return await message.reply("🚫 **Oɴʟʏ Aᴅᴍɪɴs Cᴀɴ Sᴛᴏᴘ Mᴜsɪᴄ!**")
+        return await message.reply(
+            "🚫 **Oɴʟʏ Aᴅᴍɪɴs Cᴀɴ Sᴛᴏᴘ Mᴜsɪᴄ!**"
+        )
 
     try:
         music_queues.pop(chat_id, None)
         await call_py.leave_call(chat_id)
+
         await message.reply(
             f"⏹ **Sᴛᴏᴘᴘᴇᴅ by [{message.from_user.first_name}](tg://user?id={user_id})**",
             disable_web_page_preview=True
         )
+
     except Exception as e:
         await message.reply(f"❌ **Eʀʀᴏʀ:** `{e}`")
-
-
 
 
 async def songs_logic(client, message):
