@@ -9,7 +9,17 @@ from pytgcalls.types.stream import StreamEnded
 
 
 # Commands import karein
-from commands import play_logic, stop_logic, next_logic, songs_logic, play_next
+from commands import (
+    play_logic,
+    stop_logic,
+    next_logic,
+    songs_logic,
+    pause_logic,
+    resume_logic,
+    playforce_logic,
+    play_next
+)
+
 
 
 load_dotenv()
@@ -18,10 +28,12 @@ bot = Client("MusicBot", api_id=int(os.getenv("API_ID")), api_hash=os.getenv("AP
 assistant = Client("Assistant", api_id=int(os.getenv("API_ID")), api_hash=os.getenv("API_HASH"), session_string=os.getenv("STRING_SESSION"))
 call_py = PyTgCalls(assistant)
 
+
 @call_py.on_update()
 async def on_update_handler(client, update: Update):
     if isinstance(update, StreamEnded):
         await play_next(update.chat_id, call_py)
+
 
 
 
@@ -32,6 +44,18 @@ ytdl = YoutubeDL({"format": "bestaudio/best", "quiet": True, "cookiefile": "cook
 @bot.on_message(filters.command("play") & filters.group)
 async def play_cmd(client, message):
     await play_logic(client, message, ytdl, call_py)
+
+@bot.on_message(filters.command("playforce") & filters.group)
+async def playforce_cmd(client, message):
+    await playforce_logic(client, message, ytdl, call_py)
+
+@bot.on_message(filters.command("pause") & filters.group)
+async def pause_cmd(client, message):
+    await pause_logic(client, message, call_py)
+
+@bot.on_message(filters.command("resume") & filters.group)
+async def resume_cmd(client, message):
+    await resume_logic(client, message, call_py)
 
 @bot.on_message(filters.command("stop") & filters.group)
 async def stop_cmd(client, message):
@@ -44,6 +68,7 @@ async def next_cmd(client, message):
 @bot.on_message(filters.command("songs") & filters.group)
 async def songs_cmd(client, message):
     await songs_logic(client, message)
+
 
 
 # Yahan aap naye commands asani se add kar sakte hain:
