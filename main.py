@@ -24,15 +24,34 @@ assistant = Client("Assistant", api_id=int(os.getenv("API_ID")), api_hash=os.get
 call_py = PyTgCalls(assistant)
 
 
+# @call_py.on_update()
+# async def on_update_handler(client, update: Update):
+#     if isinstance(update, StreamEnded):
+#         await play_next(update.chat_id, call_py)
+
+
 @call_py.on_update()
-async def on_update_handler(client, update: Update):
+async def on_update_handler(client, update):
     if isinstance(update, StreamEnded):
         await play_next(update.chat_id, call_py)
 
 
 
 
-ytdl = YoutubeDL({"format": "bestaudio/best", "quiet": True, "cookiefile": "cookies.txt"})
+# ytdl = YoutubeDL({"format": "bestaudio/best", "quiet": True, "cookiefile": "cookies.txt"})
+
+ytdl = YoutubeDL({
+    "format": "bestaudio/best",
+    "quiet": True,
+    "nocheckcertificate": True,
+    "user_agent": "com.google.android.youtube/17.31.35",
+    "extractor_args": {
+        "youtube": {
+            "player_client": ["android"]
+        }
+    }
+})
+
 
 # --- Command Routing ---
 
