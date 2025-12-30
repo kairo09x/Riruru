@@ -5,7 +5,8 @@ from pyrogram import Client, filters
 from pytgcalls import PyTgCalls
 from yt_dlp import YoutubeDL
 from pytgcalls.types import Update
-from pytgcalls.types.stream import StreamAudioEnded
+from pytgcalls.types.stream import StreamEnded
+
 
 # Commands import karein
 from commands import play_logic, stop_logic, next_logic, songs_logic, play_next
@@ -19,7 +20,7 @@ call_py = PyTgCalls(assistant)
 
 @call_py.on_stream_end()
 async def on_stream_end(client, update: Update):
-    if isinstance(update, StreamAudioEnded):
+    if isinstance(update, StreamEnded):
         await play_next(update.chat_id, call_py)
 
 
