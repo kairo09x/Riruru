@@ -3,14 +3,11 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from pytgcalls.types import MediaStream
 import asyncio
 
+
 # Note: Hum yahan 'ytdl' aur 'call_py' ko main.py se import karenge ya functions me pass karenge.
 # Lekin sabse clean tarika hai ki hum main logic ko function me rakhein.
 
 music_queues = {}
-
-from pytgcalls import StreamType
-from pytgcalls.types import Update
-from pytgcalls.types.stream import StreamAudioEnded
 
 async def play_next(chat_id, call_py):
     queue = music_queues.get(chat_id)
