@@ -6,7 +6,7 @@ from commands import music_queues, play_next, send_now_playing, is_admin
 
 async def pause_cb(client, query: CallbackQuery, call_py):
     chat_id = query.message.chat.id
-    await call_py.pause_stream(chat_id)
+    await call_py.pause(chat_id)
     await query.message.reply(
         f"⏸ **Pᴀᴜsᴇᴅ by {query.from_user.mention}**"
     )
@@ -15,11 +15,12 @@ async def pause_cb(client, query: CallbackQuery, call_py):
 
 async def resume_cb(client, query: CallbackQuery, call_py):
     chat_id = query.message.chat.id
-    await call_py.resume_stream(chat_id)
+    await call_py.resume(chat_id)
     await query.message.reply(
         f"▶️ **Rᴇsᴜᴍᴇᴅ by {query.from_user.mention}**"
     )
     await query.answer()
+
 
 
 async def skip_cb(client, query: CallbackQuery, call_py):
