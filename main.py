@@ -8,15 +8,13 @@ from pytgcalls.types import Update
 from pytgcalls.types.stream import StreamEnded
 
 
-# Commands import karein
 from commands import (
     play_logic, stop_logic, next_logic,
-    songs_logic, pause_logic, resume_logic,
-    playforce_logic, play_next  
+    songs_logic, pause_logic, resume_logic, playforce_logic
 )
 
-
 from callbacks import pause_cb, resume_cb, skip_cb, stop_cb
+from player import play_next
 
 
 load_dotenv()
