@@ -143,11 +143,16 @@ async def play_logic(client, message, ytdl, call_py):
 
 async def stop_logic(client, message, call_py):
     chat_id = message.chat.id
+    user_id = message.from_user.id
+
+    if not await is_admin(client, chat_id, user_id):
+        return await message.reply("🚫 **Oɴʟʏ Aᴅᴍɪɴs Cᴀɴ Sᴛᴏᴘ Mᴜsɪᴄ!**")
+
     try:
         music_queues.pop(chat_id, None)
         await call_py.leave_call(chat_id)
         await message.reply(
-            f"⏹ **Sᴛᴏᴘᴘᴇᴅ by [{message.from_user.first_name}](tg://user?id={message.from_user.id})**",
+            f"⏹ **Sᴛᴏᴘᴘᴇᴅ by [{message.from_user.first_name}](tg://user?id={user_id})**",
             disable_web_page_preview=True
         )
     except Exception as e:
@@ -173,6 +178,11 @@ async def songs_logic(client, message):
 
 async def next_logic(client, message, call_py):
     chat_id = message.chat.id
+    user_id = message.from_user.id
+
+    if not await is_admin(client, chat_id, user_id):
+        return await message.reply("🚫 **Oɴʟʏ Aᴅᴍɪɴs Cᴀɴ Sᴋɪᴘ Sᴏɴɢs!**")
+
     queue = music_queues.get(chat_id)
 
     if not queue or len(queue) == 1:
