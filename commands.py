@@ -17,9 +17,15 @@ async def play_next(chat_id, call_py):
         await call_py.leave_call(chat_id)
         return
 
+    # remove current song
     queue.pop(0)
     next_song = queue[0]
-    await call_py.change_stream(chat_id, MediaStream(next_song["url"]))
+
+    # restart stream with next song
+    await call_py.leave_call(chat_id)
+    await asyncio.sleep(1)
+    await call_py.play(chat_id, MediaStream(next_song["url"]))
+
 
 async def play_logic(client, message, ytdl, call_py):
     chat_id = message.chat.id
