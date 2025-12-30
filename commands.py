@@ -82,7 +82,7 @@ async def play_logic(client, message, ytdl, call_py):
     try:
         loop = asyncio.get_event_loop()
         info = await loop.run_in_executor(
-            None, lambda: ytdl.extract_info(f"ytsearch:{query}", download=False)
+            None, lambda: ytdl.extract_info(f"ytsearch1:{query}", download=False)
         )
 
         if not info or not info.get("entries"):
