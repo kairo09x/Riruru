@@ -3,7 +3,6 @@ from pytgcalls.types import MediaStream
 import asyncio
 from commands import music_queues, play_next, send_now_playing, is_admin
 
-
 async def pause_cb(client, query: CallbackQuery, call_py):
     chat_id = query.message.chat.id
     await call_py.pause(chat_id)
@@ -21,9 +20,7 @@ async def resume_cb(client, query: CallbackQuery, call_py):
     )
     await query.answer()
 
-
-
-async def skip_cb(client, query: CallbackQuery, call_py):
+async def skip_cb(client, query: CallbackQuery, call_py, ytdl): # <--- ytdl add kiya
     chat_id = query.message.chat.id
     user_id = query.from_user.id
 
@@ -32,14 +29,16 @@ async def skip_cb(client, query: CallbackQuery, call_py):
 
     queue = music_queues.get(chat_id)
 
-    if not queue or len(queue) == 1:
-        return await query.answer("No next song!", show_alert=True)
+    if not queue or len(queue) <= 1:
+        return await query.answer("No next song in queue!", show_alert=True)
 
-    await play_next(chat_id, call_py)
+    # Ab yahan ytdl sahi se pass hoga
+    await play_next(chat_id, call_py, ytdl, client)
+    
+    await query.answer("Skipped!")
     await query.message.reply(
-        f"⏭ **Sᴋɪᴘᴘᴇᴅ by [{query.from_user.first_name}](tg://user?id={user_id})**"
+        f"⏭ **Sᴋɪᴘᴘᴇᴅ by {query.from_user.mention}**"
     )
-
 
 async def stop_cb(client, query: CallbackQuery, call_py):
     chat_id = query.message.chat.id
@@ -54,4 +53,5 @@ async def stop_cb(client, query: CallbackQuery, call_py):
     await query.message.reply(
         f"⏹ **Sᴛᴏᴘᴘᴇᴅ by [{query.from_user.first_name}](tg://user?id={user_id})**"
     )
+
 
