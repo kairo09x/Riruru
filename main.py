@@ -85,6 +85,16 @@ async def next_cmd(client, message):
     # Yahan 'ytdl' pass karna zaruri hai kyunki next_logic ab ise mang raha hai
     await next_logic(client, message, call_py, ytdl)
 
+from commands import loop_logic, seek_logic
+
+@bot.on_message(filters.command("loop") & filters.group)
+async def loop_cmd(client, message):
+    await loop_logic(client, message)
+
+@bot.on_message(filters.command("seek") & filters.group)
+async def seek_cmd(client, message):
+    # 'call_py' pass karna zaroori hai seek karne ke liye
+    await seek_logic(client, message, call_py)
 
 @bot.on_message(filters.command("songs") & filters.group)
 async def songs_cmd(client, message):
