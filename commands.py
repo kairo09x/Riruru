@@ -35,16 +35,16 @@ async def loop_logic(client, message):
     else:
         await message.reply("❌ **Usage:** `/loop on` or `/loop off`")
 
+# In imports ko upar add karein
+from pyrogram.errors import WebpageMediaEmpty, MessageIdInvalid
 
-
-# --- FIXED: 4 arguments support karne ke liye update kiya ---
 async def send_now_playing(client, chat_id, song, requester_mention):
     text = (
         f"★ **Sᴛᴀʀᴛᴇᴅ Sᴛʀᴇᴀᴍɪɴɢ Nᴏᴡ** ★ ❞\n\n"
         f"★ **Tɪᴛʟᴇ** » {song['title'][:40]}...\n"
         f"★ **Dᴜʀᴀᴛɪᴏɴ** » {song['duration']} Mɪɴᴜᴛᴇs\n"
         f"★ **Bʏ** » {requester_mention}\n\n"
-        f"❖ **Mᴀᴅᴇ Bʏ** ➔ [ᴺᵒᵇⁱᵗᵃ ᵏ](https://t.me/ig_novi) ❞"
+        f"❖ **Mᴀᴅᴇ Bʏ** ➔ [ᴺᵒ貴ᵗᵃ ᵏ](https://t.me/ig_novi) ❞"
     )
 
     buttons = InlineKeyboardMarkup([
@@ -56,12 +56,26 @@ async def send_now_playing(client, chat_id, song, requester_mention):
         ]
     ])
 
-    await client.send_photo(
-        chat_id=chat_id,
-        photo=song["thumbnail"],
-        caption=text,
-        reply_markup=buttons
-    )
+    try:
+        # Pehle photo bhejne ki koshish karein
+        await client.send_photo(
+            chat_id=chat_id,
+            photo=song["thumbnail"],
+            caption=text,
+            reply_markup=buttons
+        )
+    except Exception as e:
+        log.warning(f"Failed to send photo: {e}. Sending text instead.")
+        # Agar photo fail ho jaye (WebpageMediaEmpty), toh bina thumbnail ke text bhej dein
+        await client.send_message(
+            chat_id=chat_id,
+            text=text,
+            reply_markup=buttons,
+            disable_web_page_preview=True
+        )
+
+
+
 
 async def play_next(chat_id, call_py, ytdl, client):
     queue = music_queues.get(chat_id)
@@ -103,23 +117,26 @@ async def play_logic(client, assistant, message, ytdl, call_py):
     chat_id = message.chat.id
     query = " ".join(message.command[1:])
     
+    try: await message.delete()
+    except: pass
+
     if not query:
-        return await message.reply("❌ **Usage:** `/play song name`")
+        return await client.send_message(chat_id, "❌ **Usage:** `/play song name`")
 
-    m = await message.reply("🔎 **Searching...**")
+    m = await client.send_message(chat_id, "🔎 **Searching...**")
     
-    # Assistant join logic (shortened for clarity)
     try:
-        await assistant.get_chat_member(chat_id, "me")
-    except:
+        # ... (Assistant join logic is same) ...
         try:
-            chat = await client.get_chat(chat_id)
-            link = chat.username if chat.username else await client.export_chat_invite_link(chat_id)
-            await assistant.join_chat(link)
-        except Exception as e:
-            return await m.edit(f"❌ Assistant Error: {e}")
+            await assistant.get_chat_member(chat_id, "me")
+        except:
+            try:
+                chat = await client.get_chat(chat_id)
+                link = chat.username if chat.username else await client.export_chat_invite_link(chat_id)
+                await assistant.join_chat(link)
+            except Exception as e:
+                return await m.edit(f"❌ Assistant Error: {e}")
 
-    try:
         loop = asyncio.get_event_loop()
         info = await loop.run_in_executor(None, lambda: ytdl.extract_info(f"ytsearch2:{query}", download=False))
 
@@ -135,22 +152,37 @@ async def play_logic(client, assistant, message, ytdl, call_py):
             "url": audio_url,
             "duration": video.get("duration_string", "Unknown"),
             "thumbnail": video.get("thumbnail") or "https://telegra.ph/file/9c1b9b0c7f3c6c7a6c7d4.jpg",
-            "requested_by": message.from_user.mention # <--- Save mention here
+            "requested_by": message.from_user.mention 
         }
 
         queue = music_queues.get(chat_id, [])
         if queue:
             queue.append(song)
-            return await m.edit(f"➕ **Added to queue**\n\n🎵 {song['title'][:40]}...\n👤 By: {song['requested_by']}")
+            await m.edit(f"➕ **Added to queue**\n\n🎵 {song['title'][:40]}...\n👤 By: {song['requested_by']}")
+            await asyncio.sleep(5)
+            try: await m.delete()
+            except: pass
+            return
 
         music_queues[chat_id] = [song]
         await call_py.play(chat_id, MediaStream(song["url"]))
-        await m.delete()
+        
+        # Sukoon se delete karein
+        try: await m.delete()
+        except: pass
 
         await send_now_playing(client, chat_id, song, song["requested_by"])
 
     except Exception as e:
-        await m.edit(f"❌ Error: {e}")
+        log.error(f"❌ Play Logic Error: {e}")
+        # FIXED: Check karein agar message exist karta hai tabhi edit karein
+        try:
+            await m.edit(f"❌ Error: {str(e)[:100]}")
+        except MessageIdInvalid:
+            # Agar message delete ho gaya hai, toh naya message bhej dein
+            await client.send_message(chat_id, f"❌ Error: {str(e)[:100]}")
+
+
 
 async def next_logic(client, message, call_py, ytdl):
     chat_id = message.chat.id
@@ -164,15 +196,24 @@ async def next_logic(client, message, call_py, ytdl):
     # FIXED: play_next ko client pass kiya taaki ye bhi notification bhej sake
     await play_next(chat_id, call_py, ytdl, client)
 
-
 async def playforce_logic(client, assistant, message, ytdl, call_py):
     chat_id = message.chat.id
     query = " ".join(message.command[1:])
 
-    if not query:
-        return await message.reply("❌ **Uѕᴀɢᴇ:** `/playforce song name`")
+    # --- INSTANT DELETE COMMAND ---
+    try:
+        await message.delete()
+    except Exception:
+        pass # Permission nahi hai toh ignore karein
 
-    m = await message.reply("🔎 **Sᴇᴀʀᴄʜɪɴɢ...**")
+    if not query:
+        return await client.send_message(
+            chat_id, 
+            "❌ **Uѕᴀɢᴇ:** `/playforce song name`"
+        )
+
+    # Search message ko 'm' variable mein save kiya
+    m = await client.send_message(chat_id, "🔎 **Sᴇᴀʀᴄʜɪɴɢ...**")
 
     # --- ASSISTANT AUTO-JOIN ---
     try:
@@ -204,22 +245,19 @@ async def playforce_logic(client, assistant, message, ytdl, call_py):
             "url": audio_url,
             "duration": video.get("duration_string", "Unknown"),
             "thumbnail": thumb,
-            "requested_by": message.from_user.mention # Requester mention add kiya
+            "requested_by": message.from_user.mention 
         }
 
         # --- QUEUE MANAGEMENT (Force Play Logic) ---
         if chat_id in music_queues:
-            # Sirf current song (index 0) ko hatao aur naya gana index 0 par dalo
-            # Taki baki bache hue gane line mein hi rahein
             music_queues[chat_id].insert(0, song)
             if len(music_queues[chat_id]) > 1:
-                music_queues[chat_id].pop(1) # Purana playing song hat gaya
+                music_queues[chat_id].pop(1) 
         else:
             music_queues[chat_id] = [song]
 
         # --- STREAMING ---
         try:
-            # Purana stream reset karne ke liye change_stream ya leave use karein
             await call_py.play(
                 chat_id,
                 MediaStream(song["url"])
@@ -227,12 +265,13 @@ async def playforce_logic(client, assistant, message, ytdl, call_py):
         except Exception as e:
             return await m.edit(f"❌ **Stream Error:** `{e}`")
 
+        # Searching message delete karein
         try:
             await m.delete()
         except:
             pass
 
-        # --- FIXED: Sahi arguments pass kiye notification ke liye ---
+        # Notification notification bhejein
         await send_now_playing(client, chat_id, song, song["requested_by"])
 
     except Exception as e:
@@ -315,23 +354,51 @@ async def stop_logic(client, message, call_py):
     except Exception as e:
         await message.reply(f"❌ **Eʀʀᴏʀ:** `{e}`")
 
-
 async def pause_logic(client, message, call_py):
     chat_id = message.chat.id
+    
+    # Instant delete user command
+    try: await message.delete()
+    except: pass
+
+    # # Admin check
+    # if not await is_admin(client, chat_id, message.from_user.id):
+    #     return await client.send_message(chat_id, "🚫 **Only admins can pause!**")
+
+    # Check if anything is in queue
+    if chat_id not in music_queues:
+        return await client.send_message(chat_id, "❌ **Nothing is playing to pause.**")
+
     try:
-        await call_py.pause_stream(chat_id)
-        await message.reply(
-            f"⏸ **Pᴀᴜsᴇᴅ by [{message.from_user.first_name}](tg://user?id={message.from_user.id})**"
+        await call_py.pause(chat_id)
+        await client.send_message(
+            chat_id, 
+            f"⏸ **Sᴛʀᴇᴀᴍ Pᴀᴜsᴇᴅ**\n└ By: {message.from_user.mention}"
         )
-    except Exception:
-        await message.reply("❌ **Nᴏᴛʜɪɴɢ ᴛᴏ Pᴀᴜsᴇ!**")
+    except Exception as e:
+        await client.send_message(chat_id, f"❌ **Error:** `{e}`")
+
 
 async def resume_logic(client, message, call_py):
     chat_id = message.chat.id
+
+    # Instant delete user command
+    try: await message.delete()
+    except: pass
+
+    # # Admin check
+    # if not await is_admin(client, chat_id, message.from_user.id):
+    #     return await client.send_message(chat_id, "🚫 **Only admins can resume!**")
+
+    # Check if anything is in queue
+    if chat_id not in music_queues:
+        return await client.send_message(chat_id, "❌ **Nothing is playing to resume.**")
+
     try:
-        await call_py.resume_stream(chat_id)
-        await message.reply(
-            f"▶️ **Rᴇsᴜᴍᴇᴅ by [{message.from_user.first_name}](tg://user?id={message.from_user.id})**"
+        await call_py.resume(chat_id)
+        await client.send_message(
+            chat_id, 
+            f"▶️ **Sᴛʀᴇᴀᴍ Rᴇsᴜᴍᴇᴅ**\n└ By: {message.from_user.mention}"
         )
-    except Exception:
-        await message.reply("❌ **Nᴏᴛʜɪɴɢ ᴛᴏ Rᴇsᴜᴍᴇ!**")
+    except Exception as e:
+        await client.send_message(chat_id, f"❌ **Error:** `{e}`")
