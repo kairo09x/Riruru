@@ -6,6 +6,7 @@ import logging
 
 log = logging.getLogger(__name__)
 music_queues = {}
+loop_db = {} # Chat ID ke hisaab se True/False save karega
 
 from pyrogram.enums import ChatMemberStatus
 
@@ -15,6 +16,26 @@ async def is_admin(client, chat_id, user_id):
         return member.status in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER)
     except:
         return False
+
+async def loop_logic(client, message):
+    chat_id = message.chat.id
+    # if not await is_admin(client, chat_id, message.from_user.id):
+    #     return await message.reply("🚫 **Only admins can use loop!**")
+
+    if len(message.command) < 2:
+        return await message.reply("❌ **Usage:** `/loop on` or `/loop off`")
+
+    state = message.command[1].lower()
+    if state == "on":
+        loop_db[chat_id] = True
+        await message.reply("🔄 **Loop Enabled!** Current song will play repeatedly.")
+    elif state == "off":
+        loop_db[chat_id] = False
+        await message.reply("⏺ **Loop Disabled!** Playlist will continue normally.")
+    else:
+        await message.reply("❌ **Usage:** `/loop on` or `/loop off`")
+
+
 
 # --- FIXED: 4 arguments support karne ke liye update kiya ---
 async def send_now_playing(client, chat_id, song, requester_mention):
@@ -44,36 +65,38 @@ async def send_now_playing(client, chat_id, song, requester_mention):
 
 async def play_next(chat_id, call_py, ytdl, client):
     queue = music_queues.get(chat_id)
-    
-    if not queue or len(queue) <= 1:
-        music_queues.pop(chat_id, None)
-        try:
-            await call_py.leave_call(chat_id)
-        except:
-            pass
+    is_loop = loop_db.get(chat_id, False) # Check karein loop on hai ya nahi
+
+    if not queue:
         return
 
-    queue.pop(0)
+    if not is_loop:
+        # Agar loop OFF hai, toh purana gaana hatao (Normal Behavior)
+        queue.pop(0)
+    else:
+        # Agar loop ON hai, toh pop nahi karenge, wahi gaana index 0 par rahega
+        log.info(f"🔄 Loop is ON for {chat_id}")
+
+    if len(queue) == 0:
+        music_queues.pop(chat_id, None)
+        try: await call_py.leave_call(chat_id)
+        except: pass
+        return
+
     next_song = queue[0]
     
     try:
         loop = asyncio.get_event_loop()
-        info = await loop.run_in_executor(
-            None, 
-            lambda: ytdl.extract_info(f"ytsearch1:{next_song['title']}", download=False)
-        )
+        info = await loop.run_in_executor(None, lambda: ytdl.extract_info(f"ytsearch1:{next_song['title']}", download=False))
         video = info["entries"][0]
-        formats = video.get("formats", [])
-        playable_url = next((f["url"] for f in formats if f.get("acodec") != "none"), video["url"])
+        playable_url = next((f["url"] for f in video.get("formats", []) if f.get("acodec") != "none"), video["url"])
 
         await call_py.play(chat_id, MediaStream(playable_url))
-        
-        # Requester mention ko queue se nikal kar notify kiya
         await send_now_playing(client, chat_id, next_song, next_song["requested_by"])
-        log.info(f"✅ Auto-playing next: {next_song['title']}")
-
     except Exception as e:
-        log.error(f"❌ Auto-play error: {e}")
+        log.error(f"❌ Play Next Error: {e}")
+        # Agar error aaye aur loop off ho tabhi pop karein warna infinite loop ho jayega
+        if not is_loop: queue.pop(0)
         await play_next(chat_id, call_py, ytdl, client)
 
 async def play_logic(client, assistant, message, ytdl, call_py):
@@ -216,6 +239,45 @@ async def playforce_logic(client, assistant, message, ytdl, call_py):
         log.error(f"❌ Force Play Error: {e}")
         await m.edit(f"❌ **Eʀʀᴏʀ:** `{str(e)[:100]}`")
 
+async def seek_logic(client, message, call_py):
+    chat_id = message.chat.id
+    
+    # # 1. Admin check
+    # if not await is_admin(client, chat_id, message.from_user.id):
+    #     return await message.reply("🚫 **Only admins can seek!**")
+
+    # 2. Command format check
+    if len(message.command) < 2:
+        return await message.reply("❌ **Usage:** `/seek [seconds]`\nExample: `/seek 30` (to skip to 30th second)")
+
+    query = message.command[1]
+    if not query.isdigit():
+        return await message.reply("❌ Please provide time in **seconds**.")
+
+    seek_time = int(query)
+    
+    # 3. Check if song is playing
+    queue = music_queues.get(chat_id)
+    if not queue:
+        return await message.reply("❌ Nothing is playing to seek.")
+
+    current_song = queue[0]
+
+    try:
+        # PyTgCalls v3+ mein seek karne ka sahi tarika:
+        # Hum wahi URL firse play karenge lekin 'ffmpeg_parameters' mein offset (ss) laga kar
+        await call_py.play(
+            chat_id,
+            MediaStream(
+                current_song["url"],
+                ffmpeg_parameters=f"-ss {seek_time} -to {current_song.get('duration_seconds', 3600)}"
+            )
+        )
+        await message.reply(f"⏩ **Seeked to {seek_time} seconds!**")
+        
+    except Exception as e:
+        log.error(f"Seek Error: {e}")
+        await message.reply(f"❌ **Error seeking:** `{str(e)[:50]}`")
 
 async def songs_logic(client, message):
     chat_id = message.chat.id
