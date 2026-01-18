@@ -85,7 +85,12 @@ async def next_cmd(client, message):
     # Yahan 'ytdl' pass karna zaruri hai kyunki next_logic ab ise mang raha hai
     await next_logic(client, message, call_py, ytdl)
 
-from commands import loop_logic, seek_logic
+@bot.on_message(filters.command("skip") & filters.group)
+async def next_cmd(client, message):
+    # Yahan 'ytdl' pass karna zaruri hai kyunki next_logic ab ise mang raha hai
+    await next_logic(client, message, call_py, ytdl)
+
+from commands import loop_logic, seek_logic, pause_logic, resume_logic
 
 @bot.on_message(filters.command("loop") & filters.group)
 async def loop_cmd(client, message):
@@ -95,6 +100,13 @@ async def loop_cmd(client, message):
 async def seek_cmd(client, message):
     # 'call_py' pass karna zaroori hai seek karne ke liye
     await seek_logic(client, message, call_py)
+
+@bot.on_message(filters.command(["pause", "resume"]) & filters.group)
+async def pause_resume_cmds(client, message):
+    if message.command[0].lower() == "pause":
+        await pause_logic(client, message, call_py)
+    else:
+        await resume_logic(client, message, call_py)
 
 @bot.on_message(filters.command("songs") & filters.group)
 async def songs_cmd(client, message):
