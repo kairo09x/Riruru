@@ -44,7 +44,7 @@ async def send_now_playing(client, chat_id, song, requester_mention):
         f"★ **Tɪᴛʟᴇ** » {song['title'][:40]}...\n"
         f"★ **Dᴜʀᴀᴛɪᴏɴ** » {song['duration']} Mɪɴᴜᴛᴇs\n"
         f"★ **Bʏ** » {requester_mention}\n\n"
-        f"❖ **Mᴀᴅᴇ Bʏ** ➔ [ᴺᵒ貴ᵗᵃ ᵏ](https://t.me/ig_novi) ❞"
+        f"❖ **Mᴀᴅᴇ Bʏ** ➔ [ᴺᵒᵇⁱᵗᵃ ᵏ](https://t.me/ig_novi) ❞"
     )
 
     buttons = InlineKeyboardMarkup([
