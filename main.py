@@ -132,11 +132,21 @@ async def start_bot():
 
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from database import add_served_user
 
 # --- Private Chat (Start) ---
-@bot.on_message(filters.command("start"))
+@bot.on_message(filters.command("start") & filters.private)
 async def start_private(client, message):
+    user_id = message.from_user.id
     user_name = message.from_user.first_name
+    username = message.from_user.username
+
+    # Database mein user save/update karein
+    try:
+        add_served_user(user_id, user_name, username)
+    except Exception as e:
+        print(f"Error saving user: {e}")
+
     text = (
         f"★ **ʜᴇʟʟᴏ {user_name} !**\n\n"
         f"➤ **ɪ ᴀᴍ ᴀ ғᴀsᴛ ᴍᴜsɪᴄ ʙᴏᴛ.**\n"
