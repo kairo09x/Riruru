@@ -104,13 +104,42 @@ async def seek_cmd(client, message):
 async def songs_cmd(client, message):
     await songs_logic(client, message)
 
+from database import load_auth_users
+from commands import auth_logic, unauth_logic, authusers_logic
+
+# ... baki handlers ke sath auth commands register karein ...
+@bot.on_message(filters.command("auth") & filters.group)
+async def auth_cmd(client, message):
+    await auth_logic(client, message)
+
+@bot.on_message(filters.command("unauth") & filters.group)
+async def unauth_cmd(client, message):
+    await unauth_logic(client, message)
+
+@bot.on_message(filters.command("authusers") & filters.group)
+async def authusers_cmd(client, message):
+    await authusers_logic(client, message)
+
+# --- Updated Start Function ---
+async def start_bot():
+    print("🔋 Loading Auth Users from Supabase...")
+    load_auth_users() # Database se cache mein load karega
+    await bot.start()
+    await assistant.start()
+    await call_py.start()
+    print("✅ Bot Started Successfully!")
+    await asyncio.Event().wait()
+
+from pyrogram import filters
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
 # --- Private Chat (Start) ---
-@bot.on_message(filters.command("start") & filters.private)
+@bot.on_message(filters.command("start"))
 async def start_private(client, message):
     user_name = message.from_user.first_name
     text = (
         f"★ **ʜᴇʟʟᴏ {user_name} !**\n\n"
-        f"➤ **ɪ ᴀᴍ ᴀ ғᴀsᴛ ᴀɴᴅ ᴘᴏᴡᴇʀғᴜʟ ᴍᴜsɪᴄ ʙᴏᴛ.**\n"
+        f"➤ **ɪ ᴀᴍ ᴀ ғᴀsᴛ ᴍᴜsɪᴄ ʙᴏᴛ.**\n"
         f"➤ **ᴜsᴇ ʙᴜᴛᴛᴏɴs ʙᴇʟᴏᴡ ᴛᴏ ᴇxᴘʟᴏʀᴇ ᴍᴏʀᴇ!**"
     )
 
