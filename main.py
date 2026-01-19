@@ -119,17 +119,7 @@ async def unauth_cmd(client, message):
 @bot.on_message(filters.command("authusers") & filters.group)
 async def authusers_cmd(client, message):
     await authusers_logic(client, message)
-
-# --- Updated Start Function ---
-async def start_bot():
-    print("🔋 Loading Auth Users from Supabase...")
-    load_auth_users() # Database se cache mein load karega
-    await bot.start()
-    await assistant.start()
-    await call_py.start()
-    print("✅ Bot Started Successfully!")
-    await asyncio.Event().wait()
-
+    
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from database import add_served_user
@@ -171,6 +161,24 @@ async def start_private(client, message):
         reply_markup=buttons,
         disable_web_page_preview=True
     )
+
+from broadcast import broadcast_send, broadcast_delete, get_stats
+
+SUDO_USERS = [8581311255] # Apni ID yahan dalein
+
+@bot.on_message(filters.command("send_dm") & filters.user(SUDO_USERS))
+async def send_dm_handler(client, message):
+    # Yeh automatically 1, 2, 3 slots manage karega
+    await broadcast_send(client, message)
+
+@bot.on_message(filters.command("del_dm") & filters.user(SUDO_USERS))
+async def del_dm_handler(client, message):
+    # Usage: /del_dm 1
+    await broadcast_delete(client, message)
+
+@bot.on_message(filters.command("stats") & filters.user(SUDO_USERS))
+async def stats_handler(client, message):
+    await get_stats(client, message)
 
 # --- Bot Startup ---
 async def start_bot():
