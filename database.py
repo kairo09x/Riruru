@@ -34,3 +34,16 @@ def remove_auth_user(chat_id, user_id):
 
 def is_user_auth(chat_id, user_id):
     return chat_id in auth_cache and user_id in auth_cache[chat_id]
+
+def add_served_user(user_id, first_name, username):
+    # upsert use karne se data update hota rahega aur error nahi aayega
+    supabase.table("users").upsert({
+        "user_id": user_id,
+        "first_name": first_name,
+        "username": username
+    }).execute()
+
+def get_served_users():
+    """Sabh users ki list nikalne ke liye (Broadcasting)"""
+    response = supabase.table("users").select("user_id").execute()
+    return [row["user_id"] for row in response.data]
