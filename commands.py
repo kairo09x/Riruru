@@ -52,20 +52,24 @@ async def send_now_playing(client, chat_id, song, requester_mention):
         f"★ **Tɪᴛʟᴇ** » {song['title'][:40]}...\n"
         f"★ **Dᴜʀᴀᴛɪᴏɴ** » {song['duration']} Mɪɴᴜᴛᴇs\n"
         f"★ **Bʏ** » {requester_mention}\n\n"
-        f"❖ **Mᴀᴅᴇ Bʏ** ➔ [ᴺᵒ貴ᵗᵃ ᵏ](https://t.me/ig_novi) ❞"
+        f"❖ **Mᴀᴅᴇ Bʏ** ➔ [ᴺᵒᵇⁱᵗᵃ ᵏ](https://t.me/ig_novi) ❞"
     )
 
+    # Buttons Layout: 4 Control buttons aur niche 1 Close button
     buttons = InlineKeyboardMarkup([
         [
             InlineKeyboardButton("Ⅱ", callback_data="pause"),
             InlineKeyboardButton("↻", callback_data="resume"),
             InlineKeyboardButton("‣I", callback_data="skip"),
             InlineKeyboardButton("▢", callback_data="stop")
+        ],
+        [
+            # Image jaisa stylish close button
+            InlineKeyboardButton("★ ᴄʟᴏsᴇ ★", callback_data="close")
         ]
     ])
 
     try:
-        # Pehle photo bhejne ki koshish karein
         await client.send_photo(
             chat_id=chat_id,
             photo=song["thumbnail"],
@@ -74,15 +78,12 @@ async def send_now_playing(client, chat_id, song, requester_mention):
         )
     except Exception as e:
         log.warning(f"Failed to send photo: {e}. Sending text instead.")
-        # Agar photo fail ho jaye (WebpageMediaEmpty), toh bina thumbnail ke text bhej dein
         await client.send_message(
             chat_id=chat_id,
             text=text,
             reply_markup=buttons,
             disable_web_page_preview=True
         )
-
-
 
 
 async def play_next(chat_id, call_py, ytdl, client):
