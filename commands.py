@@ -16,14 +16,60 @@ music_queues = {}
 loop_db = {} # Chat ID ke hisaab se True/False save karega
 search_lock = asyncio.Lock()
 
+from database import is_user_auth, add_auth_user, remove_auth_user, auth_cache
 from pyrogram.enums import ChatMemberStatus
 
 async def is_admin(client, chat_id, user_id):
+    # Pehle Group-wise Auth check karein
+    if is_user_auth(chat_id, user_id):
+        return True
     try:
         member = await client.get_chat_member(chat_id, user_id)
         return member.status in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER)
     except:
         return False
+
+async def auth_logic(client, message):
+    chat_id = message.chat.id
+    # Check if command sender is real admin
+    member = await client.get_chat_member(chat_id, message.from_user.id)
+    if member.status not in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER):
+        return await message.reply("🚫 **Only admins can auth users!**")
+
+    if not message.reply_to_message:
+        return await message.reply("👉 **Reply to a user to auth them.**")
+
+    user_id = message.reply_to_message.from_user.id
+    if is_user_auth(chat_id, user_id):
+        return await message.reply("✅ **User is already authorized.**")
+
+    add_auth_user(chat_id, user_id)
+    await message.reply(f"✅ **Authorized:** {message.reply_to_message.from_user.mention}.")
+
+async def unauth_logic(client, message):
+    chat_id = message.chat.id
+    member = await client.get_chat_member(chat_id, message.from_user.id)
+    if member.status not in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER):
+        return await message.reply("🚫 **Only admins can unauth users!**")
+
+    if not message.reply_to_message:
+        return await message.reply("👉 **Reply to a user to unauth them.**")
+
+    user_id = message.reply_to_message.from_user.id
+    remove_auth_user(chat_id, user_id)
+    await message.reply(f"🥀 **Unauthorized:** {message.reply_to_message.from_user.mention}")
+
+async def authusers_logic(client, message):
+    chat_id = message.chat.id
+    users = auth_cache.get(chat_id, set())
+    
+    if not users:
+        return await message.reply("📭 **Empty Auth List.**")
+
+    text = "💗 **Authorized Users:**\n\n"
+    for uid in users:
+        text += f"• `{uid}`\n"
+    await message.reply(text)
 
 async def loop_logic(client, message):
     chat_id = message.chat.id
@@ -31,7 +77,7 @@ async def loop_logic(client, message):
     #     return await message.reply("🚫 **Only admins can use loop!**")
 
     if len(message.command) < 2:
-        return await message.reply("❌ **Usage:** `/loop on` or `/loop off`")
+        return await message.reply("🥀 **Usage:** `/loop on` or `/loop off`")
 
     state = message.command[1].lower()
     if state == "on":
@@ -41,7 +87,7 @@ async def loop_logic(client, message):
         loop_db[chat_id] = False
         await message.reply("⏺ **Loop Disabled!** Playlist will continue normally.")
     else:
-        await message.reply("❌ **Usage:** `/loop on` or `/loop off`")
+        await message.reply("🥀 **Usage:** `/loop on` or `/loop off`")
 
 # In imports ko upar add karein
 from pyrogram.errors import WebpageMediaEmpty, MessageIdInvalid
